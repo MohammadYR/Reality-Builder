@@ -1,0 +1,103 @@
+name: Node.js CI & Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build_and_lint_webapp:
+    name: Build and Lint Web App
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: web-app/package-lock.json
+
+    - name: Install web-app dependencies
+      working-directory: ./web-app
+      run: npm ci
+
+    - name: Run ESLint
+      working-directory: ./web-app
+      run: npm run lint # Assumes 'lint' script is in web-app/package.json
+
+    - name: Run Build (Placeholder/Check)
+      working-directory: ./web-app
+      run: npm run build # Assumes 'build' script is in web-app/package.json
+      env:
+        # Prevent build errors due to missing Firebase config during CI if not mocked
+        NEXT_PUBLIC_FIREBASE_API_KEY: "ci-placeholder"
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "ci-placeholder"
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "ci-placeholder"
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "ci-placeholder"
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "ci-placeholder"
+        NEXT_PUBLIC_FIREBASE_APP_ID: "ci-placeholder"
+
+  # Placeholder for Tauri Build (more complex, requires Rust setup)
+  # build_desktop_app:
+  #   name: Build Tauri Desktop App
+  #   needs: build_and_lint_webapp # Optional: wait for web app build if it generates assets for Tauri
+  #   runs-on: ubuntu-latest # Or specific OS for specific targets: macos-latest, windows-latest
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
+  #
+  #   - name: Set up Node.js
+  #     uses: actions/setup-node@v4
+  #     with:
+  #       node-version: 18.x # Or your preferred version
+  #       cache: 'npm'
+  #       cache-dependency-path: web-app/package-lock.json # If web-app is built first
+  #
+  #   - name: Install Rust
+  #     uses: dtolnay/rust-toolchain@stable
+  #
+  #   - name: Install Linux dependencies for Tauri
+  #     if: runner.os == 'Linux'
+  #     run: |
+  #       sudo apt-get update
+  #       sudo apt-get install -y libwebkit2gtk-4.0-dev libgtk-3-dev librsvg2-dev libappindicator3-dev patchelf
+  #
+  #   - name: Install web-app dependencies (if not built separately)
+  #     working-directory: ./web-app
+  #     run: npm ci
+  #
+  #   - name: Build web-app for Tauri (if needed by beforeBuildCommand)
+  #     working-directory: ./web-app
+  #     run: npm run build && npm run export # Example, adjust to your actual commands
+  #     env:
+  #       NEXT_PUBLIC_FIREBASE_API_KEY: "ci-placeholder"
+  #       # ... other Firebase env vars
+  #
+  #   - name: Build Tauri app
+  #     uses: tauri-apps/tauri-action@v0
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For releases
+  #       TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }} # If using updater
+  #       TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }} # If using updater
+  #     with:
+  #       projectPath: ./desktop-app
+  #       # Optional: specify targets, e.g., 'linux', 'windows', 'macos'
+  #       # Optional: command to run before tauri build, e.g., if web-app isn't pre-built by another job
+  #       # buildCommand: 'npm run build --prefix ../web-app && npm run export --prefix ../web-app'
+  #
+  #   # - name: Upload Artifact (Example)
+  #   #   uses: actions/upload-artifact@v3
+  #   #   with:
+  #   #     name: desktop-app-${{ runner.os }}
+  #   #     path: ./desktop-app/src-tauri/target/release/bundle/*
+  #     # Adjust path based on actual bundle output
+```
